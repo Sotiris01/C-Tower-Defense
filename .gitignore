@@ -1,0 +1,25 @@
+# Compiled Binaries
+*.exe
+*.dll
+*.o
+*.obj
+
+# Editors
+.vscode/
+.idea/
+*.swp
+
+# Build Output
+build/
+bin/
+dist/
+x64/
+Debug/
+Release/
+
+# OS generated
+Thumbs.db
+.DS_Store
+
+# Logs
+*.log
