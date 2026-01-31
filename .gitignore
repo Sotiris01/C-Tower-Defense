@@ -3,8 +3,6 @@ TeacherContext/
 .github/
 GEMINI.md
 
-# Raylib (downloaded automatically by setup script)
-src/engine/raylib/
 
 # Compiled Binaries
 *.exe
