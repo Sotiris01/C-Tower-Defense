@@ -21,6 +21,29 @@
 #include <vector>
 
 // ═══════════════════════════════════════════════════════════════════════
+// RAYLIB VERSION COMPATIBILITY
+// ═══════════════════════════════════════════════════════════════════════
+// Different Raylib 5.0 builds have different API for DrawRectangleRoundedLines:
+// - Windows MinGW build: OLD API with lineThick parameter
+// - Linux system package: NEW API without lineThick parameter
+// 
+// We detect at compile time by checking if RAYLIB_VERSION >= 5.0 on Linux
+// On Windows with MinGW, the old API is used; on Linux, the new API.
+
+#if defined(__linux__) || defined(__APPLE__)
+    // Linux/macOS: Raylib 5.0 final has NEW API (no lineThick)
+    inline void DrawRoundedRectLines(Rectangle rec, float roundness, int segments, int lineThick, Color color) {
+        (void)lineThick; // Ignore lineThick - not supported in new API
+        DrawRectangleRoundedLines(rec, roundness, segments, color);
+    }
+#else
+    // Windows: Raylib 5.0 MinGW build has OLD API (with lineThick)
+    inline void DrawRoundedRectLines(Rectangle rec, float roundness, int segments, int lineThick, Color color) {
+        DrawRectangleRoundedLines(rec, roundness, segments, (float)lineThick, color);
+    }
+#endif
+
+// ═══════════════════════════════════════════════════════════════════════
 // GAME CONSTANTS
 // ═══════════════════════════════════════════════════════════════════════
 const int SCREEN_WIDTH = 800;
@@ -824,18 +847,18 @@ void drawGame() {
     
     // Wave indicator (top right)
     DrawRectangleRounded((Rectangle){(float)(SCREEN_WIDTH - 120), 8, 110, 32}, 0.3f, 8, Fade(COLOR_BASE, 0.2f));
-    DrawRectangleRoundedLines((Rectangle){(float)(SCREEN_WIDTH - 120), 8, 110, 32}, 0.3f, 8, 1, Fade(COLOR_BASE, 0.5f));
+    DrawRoundedRectLines((Rectangle){(float)(SCREEN_WIDTH - 120), 8, 110, 32}, 0.3f, 8, 1, Fade(COLOR_BASE, 0.5f));
     DrawTextCustom(TextFormat("WAVE %d", wave), SCREEN_WIDTH - 100, 14, 22, COLOR_BASE);
     
     // Stats bar (horizontal strip below title)
     // Money (taller to show build type)
     DrawRectangleRounded((Rectangle){20, 42, 150, 45}, 0.2f, 8, Fade(BLACK, 0.6f));
-    DrawRectangleRoundedLines((Rectangle){20, 42, 150, 45}, 0.2f, 8, 1, Fade(COLOR_MONEY, 0.4f));
+    DrawRoundedRectLines((Rectangle){20, 42, 150, 45}, 0.2f, 8, 1, Fade(COLOR_MONEY, 0.4f));
     DrawTextCustom(TextFormat("$ %d", playerMoney), 32, 48, 24, COLOR_MONEY);
     
     // Health bar
     DrawRectangleRounded((Rectangle){180, 42, 170, 45}, 0.2f, 8, Fade(BLACK, 0.6f));
-    DrawRectangleRoundedLines((Rectangle){180, 42, 170, 45}, 0.2f, 8, 1, Fade(COLOR_HEALTH, 0.4f));
+    DrawRoundedRectLines((Rectangle){180, 42, 170, 45}, 0.2f, 8, 1, Fade(COLOR_HEALTH, 0.4f));
     DrawTextCustom("HP", 190, 50, 18, COLOR_HEALTH);
     DrawRectangleRounded((Rectangle){220, 52, 100, 12}, 0.3f, 4, Fade(RED, 0.3f));
     DrawRectangleRounded((Rectangle){220, 52, (float)baseHealth, 12}, 0.3f, 4, COLOR_HEALTH);
@@ -843,7 +866,7 @@ void drawGame() {
     
     // Score (wider panel)
     DrawRectangleRounded((Rectangle){360, 42, 160, 45}, 0.2f, 8, Fade(BLACK, 0.6f));
-    DrawRectangleRoundedLines((Rectangle){360, 42, 160, 45}, 0.2f, 8, 1, Fade(WHITE, 0.3f));
+    DrawRoundedRectLines((Rectangle){360, 42, 160, 45}, 0.2f, 8, 1, Fade(WHITE, 0.3f));
     DrawTextCustom(TextFormat("SCORE: %d", score), 375, 48, 20, COLOR_UI_TEXT);
     DrawTextCustom(TextFormat("Wave Pts: %d", wavePointsSum), 375, 70, 14, Fade(COLOR_UI_TEXT, 0.6f));
     
@@ -853,7 +876,7 @@ void drawGame() {
         // Pulsing danger indicator
         float dangerPulse = 0.5f + 0.5f * sinf(GetTime() * 6);
         DrawRectangleRounded((Rectangle){530, 42, 90, 45}, 0.3f, 8, Fade(RED, 0.3f + 0.3f * dangerPulse));
-        DrawRectangleRoundedLines((Rectangle){530, 42, 90, 45}, 0.3f, 8, 1, Fade(RED, 0.8f));
+        DrawRoundedRectLines((Rectangle){530, 42, 90, 45}, 0.3f, 8, 1, Fade(RED, 0.8f));
         DrawTextCustom("DANGER!", 542, 55, 18, Fade(WHITE, dangerPulse));
     }
     
@@ -864,7 +887,7 @@ void drawGame() {
     
     // Panel: X=560, width=230 (fills right side)
     DrawRectangleRounded((Rectangle){560, 50, 230, 170}, 0.1f, 8, Fade(BLACK, 0.85f));
-    DrawRectangleRoundedLines((Rectangle){560, 50, 230, 170}, 0.1f, 8, 2, Fade(YELLOW, 0.7f));
+    DrawRoundedRectLines((Rectangle){560, 50, 230, 170}, 0.1f, 8, 2, Fade(YELLOW, 0.7f));
     DrawTextCustom("RADAR", 580, 58, 24, YELLOW);
     
     // *** CALLING STUDENT'S FUNCTION: countAllEnemies() from 04_Radar.cpp ***
@@ -912,7 +935,7 @@ void drawGame() {
     // Shows VIP & Weekend from 02_Shop.cpp
     // ─────────────────────────────────────────────────────────────────
     DrawRectangleRounded((Rectangle){560, 230, 230, 90}, 0.1f, 8, Fade(BLACK, 0.85f));
-    DrawRectangleRoundedLines((Rectangle){560, 230, 230, 90}, 0.1f, 8, 2, Fade(SKYBLUE, 0.7f));
+    DrawRoundedRectLines((Rectangle){560, 230, 230, 90}, 0.1f, 8, 2, Fade(SKYBLUE, 0.7f));
     DrawTextCustom("STATUS", 580, 238, 22, SKYBLUE);
     
     // *** CALLING STUDENT'S FUNCTION: isVIPPlayer() from 02_Shop.cpp ***
@@ -947,7 +970,7 @@ void drawGame() {
     UpgradePlayer playerData = getUpgradePlayer();
     
     DrawRectangleRounded((Rectangle){560, 330, 230, 175}, 0.1f, 8, Fade(BLACK, 0.85f));
-    DrawRectangleRoundedLines((Rectangle){560, 330, 230, 175}, 0.1f, 8, 2, Fade(PURPLE, 0.7f));
+    DrawRoundedRectLines((Rectangle){560, 330, 230, 175}, 0.1f, 8, 2, Fade(PURPLE, 0.7f));
     DrawTextCustom("COMMANDER", 580, 338, 22, PURPLE);
     
     // *** CALLING STUDENT'S FUNCTION: getPlayerRank() from 05_Upgrades.cpp ***
@@ -989,7 +1012,7 @@ void drawGame() {
     if (dangerousIdx >= 0 && dangerousIdx < (int)threatData.size()) {
         float pulse = 0.6f + 0.4f * sinf(GetTime() * 5);
         DrawRectangleRounded((Rectangle){(float)(SCREEN_WIDTH / 2 - 80), 75, 160, 25}, 0.3f, 8, Fade(RED, 0.4f * pulse));
-        DrawRectangleRoundedLines((Rectangle){(float)(SCREEN_WIDTH / 2 - 80), 75, 160, 25}, 0.3f, 8, 1, Fade(RED, 0.8f));
+        DrawRoundedRectLines((Rectangle){(float)(SCREEN_WIDTH / 2 - 80), 75, 160, 25}, 0.3f, 8, 1, Fade(RED, 0.8f));
         DrawTextCustom(TextFormat("! THREAT: %d HP !", threatData[dangerousIdx].health), SCREEN_WIDTH / 2 - 65, 80, 16, Fade(WHITE, pulse));
     }
     
@@ -1196,7 +1219,7 @@ void drawGame() {
         float alpha = messageTimer > 1 ? 1.0f : messageTimer;
         DrawRectangleRounded((Rectangle){15, (float)(SCREEN_HEIGHT - 68), (float)(SCREEN_WIDTH - 200), 28}, 
                              0.3f, 8, Fade(BLACK, 0.9f * alpha));
-        DrawRectangleRoundedLines((Rectangle){15, (float)(SCREEN_HEIGHT - 68), (float)(SCREEN_WIDTH - 200), 28}, 
+        DrawRoundedRectLines((Rectangle){15, (float)(SCREEN_HEIGHT - 68), (float)(SCREEN_WIDTH - 200), 28}, 
                                   0.3f, 8, 1, Fade(COLOR_TOWER, 0.7f * alpha));
         DrawTextCustom(statusMessage.c_str(), 25, SCREEN_HEIGHT - 62, 18, Fade(WHITE, alpha));
     }
@@ -1214,7 +1237,7 @@ void drawGame() {
     btnRestart = (Rectangle){20, (float)(SCREEN_HEIGHT - 50), 100, 42};
     bool hoverRestart = CheckCollisionPointRec(mousePos, btnRestart);
     DrawRectangleRounded(btnRestart, 0.3f, 8, hoverRestart ? Fade(RED, 0.8f) : Fade(RED, 0.4f));
-    DrawRectangleRoundedLines(btnRestart, 0.3f, 8, 1, RED);
+    DrawRoundedRectLines(btnRestart, 0.3f, 8, 1, RED);
     DrawTextCustom("[R] RESTART", 26, SCREEN_HEIGHT - 38, 18, WHITE);
     
     // Button: AUTO-UPGRADE [U]
@@ -1229,7 +1252,7 @@ void drawGame() {
     
     Color btnAutoColor = autoUpgradeSolved ? PURPLE : DARKGRAY;
     DrawRectangleRounded(btnAutoUpgrade, 0.3f, 8, hoverAutoUpgrade ? Fade(btnAutoColor, 0.9f) : Fade(btnAutoColor, 0.5f));
-    DrawRectangleRoundedLines(btnAutoUpgrade, 0.3f, 8, 1, btnAutoColor);
+    DrawRoundedRectLines(btnAutoUpgrade, 0.3f, 8, 1, btnAutoColor);
     DrawTextCustom("[U] AUTO-UPG", 140, SCREEN_HEIGHT - 38, 18, autoUpgradeSolved ? WHITE : GRAY);
     if (!autoUpgradeSolved) {
         DrawTextCustom("?", 245, SCREEN_HEIGHT - 42, 18, YELLOW);  // Hint: not solved
@@ -1250,7 +1273,7 @@ void drawGame() {
         
         // Draw panel background
         DrawRectangleRounded((Rectangle){panelX, panelY, 140, 95}, 0.15f, 8, Fade(BLACK, 0.9f));
-        DrawRectangleRoundedLines((Rectangle){panelX, panelY, 140, 95}, 0.15f, 8, 2, COLOR_TOWER);
+        DrawRoundedRectLines((Rectangle){panelX, panelY, 140, 95}, 0.15f, 8, 2, COLOR_TOWER);
         
         // Tower info
         DrawTextCustom(TextFormat("%s Lv%d", selTower.type.c_str(), selTower.level), (int)panelX + 10, (int)panelY + 8, 14, COLOR_TOWER);
@@ -1278,7 +1301,7 @@ void drawGame() {
         // Button color based on whether student solved canUpgrade()
         Color upgBtnColor = canUpg ? GREEN : (selTower.level >= 5 ? ORANGE : DARKGRAY);
         DrawRectangleRounded(btnUpgradeTower, 0.3f, 8, hoverUpg ? Fade(upgBtnColor, 0.9f) : Fade(upgBtnColor, 0.6f));
-        DrawRectangleRoundedLines(btnUpgradeTower, 0.3f, 8, 1, upgBtnColor);
+        DrawRoundedRectLines(btnUpgradeTower, 0.3f, 8, 1, upgBtnColor);
         
         if (selTower.level >= 5) {
             DrawTextCustom("MAX LEVEL", (int)panelX + 30, (int)panelY + 64, 14, WHITE);
@@ -1306,7 +1329,7 @@ void drawGame() {
         // Pause panel
         DrawRectangleRounded((Rectangle){(float)(SCREEN_WIDTH/2 - 150), (float)(SCREEN_HEIGHT/2 - 60), 300, 120}, 
                              0.1f, 8, Fade(COLOR_GRID, 0.9f));
-        DrawRectangleRoundedLines((Rectangle){(float)(SCREEN_WIDTH/2 - 150), (float)(SCREEN_HEIGHT/2 - 60), 300, 120}, 
+        DrawRoundedRectLines((Rectangle){(float)(SCREEN_WIDTH/2 - 150), (float)(SCREEN_HEIGHT/2 - 60), 300, 120}, 
                                   0.1f, 8, 2, COLOR_TOWER);
         
         DrawTextCustom("PAUSED", SCREEN_WIDTH/2 - 65, SCREEN_HEIGHT/2 - 40, 36, COLOR_TOWER);
@@ -1328,7 +1351,7 @@ void drawGame() {
         // Game over panel
         DrawRectangleRounded((Rectangle){(float)(SCREEN_WIDTH/2 - 180), (float)(SCREEN_HEIGHT/2 - 100), 360, 200}, 
                              0.1f, 8, Fade(COLOR_ENEMY_DARK, 0.95f));
-        DrawRectangleRoundedLines((Rectangle){(float)(SCREEN_WIDTH/2 - 180), (float)(SCREEN_HEIGHT/2 - 100), 360, 200}, 
+        DrawRoundedRectLines((Rectangle){(float)(SCREEN_WIDTH/2 - 180), (float)(SCREEN_HEIGHT/2 - 100), 360, 200}, 
                                   0.1f, 8, 2, COLOR_ENEMY);
         
         // Glowing text
