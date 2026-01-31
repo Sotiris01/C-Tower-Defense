@@ -10,32 +10,58 @@ echo "  (Raylib Graphics Edition - Linux)"
 echo "========================================"
 echo ""
 
-# Check if Raylib is installed
-if [ ! -f "src/engine/raylib/include/raylib.h" ]; then
+# Check if Raylib is installed (system-wide)
+echo "[1/3] Checking for Raylib..."
+
+# Try to find raylib header in common locations
+RAYLIB_FOUND=false
+RAYLIB_INCLUDE=""
+RAYLIB_LIB=""
+
+# Check system installation first
+if pkg-config --exists raylib 2>/dev/null; then
+    RAYLIB_FOUND=true
+    RAYLIB_INCLUDE=$(pkg-config --cflags raylib)
+    RAYLIB_LIB=$(pkg-config --libs raylib)
+    echo "      ✓ Raylib found (system)"
+# Check common system paths
+elif [ -f "/usr/include/raylib.h" ] || [ -f "/usr/local/include/raylib.h" ]; then
+    RAYLIB_FOUND=true
+    RAYLIB_INCLUDE="-I/usr/local/include"
+    RAYLIB_LIB="-lraylib -lGL -lm -lpthread -ldl -lrt -lX11"
+    echo "      ✓ Raylib found (system path)"
+fi
+
+if [ "$RAYLIB_FOUND" = false ]; then
+    echo ""
     echo "[WARNING] Raylib not found!"
     echo ""
-    echo "Run the setup script first:"
-    echo "  ./scripts/SETUP_GAME.sh"
+    echo "Install Raylib with one of these commands:"
     echo ""
-    echo "Or install Raylib manually:"
-    echo "  sudo apt install libraylib-dev"
+    echo "  Ubuntu/Debian:  sudo apt install libraylib-dev"
+    echo "  Fedora:         sudo dnf install raylib-devel"
+    echo "  Arch:           sudo pacman -S raylib"
+    echo ""
+    echo "Or build from source:"
+    echo "  git clone https://github.com/raysan5/raylib.git"
+    echo "  cd raylib/src && make PLATFORM=PLATFORM_DESKTOP"
+    echo "  sudo make install"
     echo ""
     read -p "Press Enter to exit..."
     exit 1
 fi
 
-echo "[1/3] Cleaning previous build..."
+echo "[2/3] Cleaning previous build..."
 rm -f game 2>/dev/null
 
-echo "[2/3] Compiling defense systems with Raylib..."
+echo "[3/3] Compiling defense systems with Raylib..."
 echo ""
 
 # Compile with g++
 g++ src/engine/main.cpp src/student/*.cpp -o game -O2 \
     -I src/engine \
-    -I src/engine/raylib/include \
-    -L src/engine/raylib/lib \
-    -lraylib -lGL -lm -lpthread -ldl -lrt -lX11 \
+    $RAYLIB_INCLUDE \
+    $RAYLIB_LIB \
     2> build_errors.txt
 
 if [ $? -ne 0 ]; then
@@ -58,7 +84,7 @@ rm -f build_errors.txt
 echo "[OK] Compilation successful!"
 echo ""
 
-echo "[3/3] Launching Planetary Defense Command..."
+echo "Launching Planetary Defense Command..."
 echo ""
 echo "========================================"
 echo "  LAUNCHING GAME..."
