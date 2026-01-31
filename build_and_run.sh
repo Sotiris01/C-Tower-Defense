@@ -10,20 +10,30 @@ echo "  (Raylib Graphics Edition - Linux)"
 echo "========================================"
 echo ""
 
-# Check if Raylib is installed (system-wide)
+# Check if Raylib is installed (local or system-wide)
 echo "[1/3] Checking for Raylib..."
 
-# Try to find raylib header in common locations
+# Try to find raylib - prefer local project folder first
 RAYLIB_FOUND=false
 RAYLIB_INCLUDE=""
 RAYLIB_LIB=""
 
-# Check system installation first
-if pkg-config --exists raylib 2>/dev/null; then
+# Check local project folder first
+if [ -f "src/engine/raylib/include/raylib.h" ]; then
+    RAYLIB_FOUND=true
+    RAYLIB_INCLUDE="-I src/engine/raylib/include"
+    if [ -f "src/engine/raylib/lib/libraylib.a" ]; then
+        RAYLIB_LIB="-L src/engine/raylib/lib -lraylib -lGL -lm -lpthread -ldl -lrt -lX11"
+    else
+        RAYLIB_LIB="-lraylib -lGL -lm -lpthread -ldl -lrt -lX11"
+    fi
+    echo "      ✓ Raylib found (project folder)"
+# Check system installation with pkg-config
+elif pkg-config --exists raylib 2>/dev/null; then
     RAYLIB_FOUND=true
     RAYLIB_INCLUDE=$(pkg-config --cflags raylib)
     RAYLIB_LIB=$(pkg-config --libs raylib)
-    echo "      ✓ Raylib found (system)"
+    echo "      ✓ Raylib found (system via pkg-config)"
 # Check common system paths
 elif [ -f "/usr/include/raylib.h" ] || [ -f "/usr/local/include/raylib.h" ]; then
     RAYLIB_FOUND=true

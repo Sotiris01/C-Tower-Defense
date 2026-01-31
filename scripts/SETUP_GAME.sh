@@ -109,31 +109,72 @@ else
 fi
 
 # ─────────────────────────────────────────────────────────────────────
-# STEP 3: Check and install Raylib dependencies
+# STEP 3: Check and install Raylib (system-wide)
 # ─────────────────────────────────────────────────────────────────────
 echo ""
-echo "[3/6] Checking Raylib dependencies..."
+echo "[3/6] Installing Raylib..."
 
 if [ -z "$PKG_MANAGER" ]; then
     detect_package_manager
 fi
 
+# Install Raylib based on package manager
 case $PKG_MANAGER in
     apt)
-        echo "      Installing Raylib dependencies..."
-        $PKG_INSTALL libasound2-dev libx11-dev libxrandr-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxcursor-dev libxinerama-dev
+        echo "      Installing Raylib and dependencies for Debian/Ubuntu..."
+        $PKG_INSTALL libraylib-dev libasound2-dev libx11-dev libxrandr-dev libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxcursor-dev libxinerama-dev
         ;;
     dnf)
-        $PKG_INSTALL alsa-lib-devel mesa-libGL-devel libX11-devel libXrandr-devel libXi-devel libXcursor-devel libXinerama-devel
+        echo "      Installing Raylib and dependencies for Fedora..."
+        $PKG_INSTALL raylib-devel alsa-lib-devel mesa-libGL-devel libX11-devel libXrandr-devel libXi-devel libXcursor-devel libXinerama-devel
         ;;
     pacman)
-        $PKG_INSTALL alsa-lib mesa libx11 libxrandr libxi libxcursor libxinerama
+        echo "      Installing Raylib and dependencies for Arch..."
+        $PKG_INSTALL raylib alsa-lib mesa libx11 libxrandr libxi libxcursor libxinerama
         ;;
     zypper)
-        $PKG_INSTALL alsa-devel Mesa-libGL-devel libX11-devel libXrandr-devel libXi-devel libXcursor-devel libXinerama-devel
+        echo "      Installing Raylib and dependencies for openSUSE..."
+        $PKG_INSTALL raylib-devel alsa-devel Mesa-libGL-devel libX11-devel libXrandr-devel libXi-devel libXcursor-devel libXinerama-devel
         ;;
 esac
-echo "      ✓ Dependencies installed!"
+
+# Verify Raylib installation
+if pkg-config --exists raylib 2>/dev/null; then
+    echo "      ✓ Raylib installed successfully (system)!"
+elif [ -f "/usr/include/raylib.h" ] || [ -f "/usr/local/include/raylib.h" ]; then
+    echo "      ✓ Raylib found in system paths!"
+else
+    echo "      ⚠ Raylib package not available. Building from source..."
+    
+    # Build Raylib from source
+    TEMP_DIR="/tmp/raylib_build"
+    rm -rf "$TEMP_DIR"
+    mkdir -p "$TEMP_DIR"
+    cd "$TEMP_DIR"
+    
+    echo "      Downloading Raylib source..."
+    git clone --depth 1 --branch 5.0 https://github.com/raysan5/raylib.git
+    
+    if [ -d "$TEMP_DIR/raylib" ]; then
+        cd "$TEMP_DIR/raylib/src"
+        echo "      Compiling Raylib (this may take a minute)..."
+        make PLATFORM=PLATFORM_DESKTOP -j$(nproc)
+        
+        if [ $? -eq 0 ]; then
+            echo "      Installing Raylib to system..."
+            sudo make install
+            echo "      ✓ Raylib built and installed successfully!"
+        else
+            echo "  ❌ ERROR: Failed to build Raylib!"
+            echo "     Try installing manually."
+            read -p "Press Enter to continue anyway..."
+        fi
+    fi
+    
+    # Cleanup
+    rm -rf "$TEMP_DIR"
+    cd "$HOME/Documents"
+fi
 
 # ─────────────────────────────────────────────────────────────────────
 # STEP 4: Choose folder
@@ -190,59 +231,61 @@ if [ "$SKIP_CLONE" != "true" ]; then
 fi
 
 # ─────────────────────────────────────────────────────────────────────
-# STEP 5.5: Install Raylib (download and setup)
+# STEP 5.5: Copy Raylib to engine folder
 # ─────────────────────────────────────────────────────────────────────
 echo ""
-echo "[5.5/6] Setting up Raylib..."
+echo "[5.5/6] Setting up Raylib in engine folder..."
 
-RAYLIB_HEADER="$INSTALL_PATH/src/engine/raylib/include/raylib.h"
 RAYLIB_TARGET="$INSTALL_PATH/src/engine/raylib"
 
-if [ -f "$RAYLIB_HEADER" ]; then
-    echo "      ✓ Raylib found!"
+# Create target directories
+mkdir -p "$RAYLIB_TARGET/include"
+mkdir -p "$RAYLIB_TARGET/lib"
+
+# Copy Raylib headers and libs from system to project
+echo "      Copying Raylib files to project..."
+
+# Find and copy headers
+if [ -f "/usr/include/raylib.h" ]; then
+    cp /usr/include/raylib.h "$RAYLIB_TARGET/include/"
+    cp /usr/include/raymath.h "$RAYLIB_TARGET/include/" 2>/dev/null || true
+    cp /usr/include/rlgl.h "$RAYLIB_TARGET/include/" 2>/dev/null || true
+    echo "      ✓ Headers copied from /usr/include/"
+elif [ -f "/usr/local/include/raylib.h" ]; then
+    cp /usr/local/include/raylib.h "$RAYLIB_TARGET/include/"
+    cp /usr/local/include/raymath.h "$RAYLIB_TARGET/include/" 2>/dev/null || true
+    cp /usr/local/include/rlgl.h "$RAYLIB_TARGET/include/" 2>/dev/null || true
+    echo "      ✓ Headers copied from /usr/local/include/"
 else
-    echo "      Raylib not found. Downloading..."
-    
-    TEMP_DIR="/tmp/raylib_setup"
-    mkdir -p "$TEMP_DIR"
-    
-    # Download Raylib source
-    RAYLIB_URL="https://github.com/raysan5/raylib/releases/download/5.0/raylib-5.0_linux_amd64.tar.gz"
-    
-    echo "      Downloading Raylib 5.0..."
-    wget -q --show-progress -O "$TEMP_DIR/raylib.tar.gz" "$RAYLIB_URL"
-    
-    if [ ! -f "$TEMP_DIR/raylib.tar.gz" ]; then
-        echo ""
-        echo "  ❌ ERROR: Failed to download Raylib!"
-        echo "     Download manually from: https://github.com/raysan5/raylib/releases"
-        echo ""
-        read -p "Press Enter to exit..."
-        exit 1
-    fi
-    
-    echo "      Extracting Raylib..."
-    tar -xzf "$TEMP_DIR/raylib.tar.gz" -C "$TEMP_DIR"
-    
-    # Create target directories
-    mkdir -p "$RAYLIB_TARGET/include"
-    mkdir -p "$RAYLIB_TARGET/lib"
-    
-    # Find and copy files
-    RAYLIB_EXTRACTED=$(find "$TEMP_DIR" -maxdepth 1 -type d -name "raylib*" | head -1)
-    if [ -d "$RAYLIB_EXTRACTED" ]; then
-        cp -r "$RAYLIB_EXTRACTED/include/"* "$RAYLIB_TARGET/include/" 2>/dev/null || true
-        cp -r "$RAYLIB_EXTRACTED/lib/"* "$RAYLIB_TARGET/lib/" 2>/dev/null || true
-    fi
-    
-    # Cleanup
-    rm -rf "$TEMP_DIR"
-    
-    if [ -f "$RAYLIB_HEADER" ]; then
-        echo "      ✓ Raylib installed successfully!"
+    echo "      ⚠ Could not find raylib headers in system paths"
+fi
+
+# Find and copy library
+if [ -f "/usr/lib/libraylib.a" ]; then
+    cp /usr/lib/libraylib.a "$RAYLIB_TARGET/lib/"
+    echo "      ✓ Library copied from /usr/lib/"
+elif [ -f "/usr/local/lib/libraylib.a" ]; then
+    cp /usr/local/lib/libraylib.a "$RAYLIB_TARGET/lib/"
+    echo "      ✓ Library copied from /usr/local/lib/"
+elif [ -f "/usr/lib/x86_64-linux-gnu/libraylib.a" ]; then
+    cp /usr/lib/x86_64-linux-gnu/libraylib.a "$RAYLIB_TARGET/lib/"
+    echo "      ✓ Library copied from /usr/lib/x86_64-linux-gnu/"
+else
+    # Try to find it anywhere
+    RAYLIB_LIB=$(find /usr -name "libraylib.a" 2>/dev/null | head -1)
+    if [ -n "$RAYLIB_LIB" ]; then
+        cp "$RAYLIB_LIB" "$RAYLIB_TARGET/lib/"
+        echo "      ✓ Library copied from $RAYLIB_LIB"
     else
-        echo "      ⚠ Raylib setup may need manual configuration"
+        echo "      ⚠ Could not find libraylib.a - will use system library"
     fi
+fi
+
+# Verify
+if [ -f "$RAYLIB_TARGET/include/raylib.h" ]; then
+    echo "      ✓ Raylib setup complete!"
+else
+    echo "      ℹ Using system Raylib (headers not copied)"
 fi
 
 # ─────────────────────────────────────────────────────────────────────
